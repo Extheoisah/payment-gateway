@@ -1,0 +1,18 @@
+Flow of app
+
+--- from the mobile app ----
+1. user clicks on buy button in the app
+2. we redirect the user to the payment gateway app
+3. we also pass the user wallet ID in the url params
+
+--- from the web app ---
+1. we decrypt the user wallet ID from the params
+2. we collect the buyAmount of BTC in Naira/Sats
+3. check if the buyAmount is less than the Dealer's BTC balance
+4. If the balance is positive, we cache the buyAmount at the current BTC <-> NGN price
+5. we show a checkout page with different payment options (card, bank transfer etc)
+6. On success, we fire callback to credit the user
+
+-- crediting the user ---
+1. we initiate a lightning payment to the buyer wallet ID (intraledger payment)
+2. on success, we show a meesage to the user that they have been credited.
