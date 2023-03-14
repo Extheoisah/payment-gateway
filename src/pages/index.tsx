@@ -2,10 +2,20 @@ import Head from 'next/head'
 import Image from 'next/image'
 import { Inter } from 'next/font/google'
 import styles from '@/styles/Home.module.css'
+import { useQuery } from '@apollo/client'
+import { REALTIMEPRICE } from '@/graphql/queries'
 
 const inter = Inter({ subsets: ['latin'] })
 
+
 export default function Home() {
+  const { data, loading, error } = useQuery(REALTIMEPRICE, {
+    variables: { currency: "NGN" },
+    fetchPolicy: "cache-and-network",
+  });
+  console.log(loading);
+  console.log(error);
+  console.log(data);
   return (
     <>
       <Head>
