@@ -1,44 +1,46 @@
-import { useRouter } from "next/router";
-import { useQuery } from "@apollo/client";
-import { REALTIMEPRICE } from "@/graphql/queries";
-import { getPrice, CURRENCIES } from "../../../utils/priceFormatter";
 import { ChangeEvent, FormEvent, useState } from "react";
+
+import { useRealtimepriceQuery } from "@/graphql/generated";
+import { currencies } from "@/types/currencies";
+
+import { formatter, getPrice } from "../../../utils/priceFormatter";
 
 type BuyRequest = {
   amount: number;
-  currency: string;
-  price: string | null;
+  currency: typeof currencies[keyof typeof currencies];
+  price: number | null;
 };
 
-export default function Buy() {
-  const [buyRequest, setBuyRequest] = useState<BuyRequest>({
-    amount: 0,
-    currency: CURRENCIES.NGN,
-    price: null,
-  });
-  const [show, setShow] = useState<boolean>(false);
-  const router = useRouter();
-  const pollInterval = 5 * 60 * 1000; // 5 min
+const SATS_PER_BTC = 100000000;
 
-  const { data, loading, error } = useQuery(REALTIMEPRICE, {
-    variables: { currency: "NGN" },
+export default function Buy() {
+  const pollInterval = 3 * 60 * 1000; // 3 min
+  const { data } = useRealtimepriceQuery({
+    variables: { currency: currencies.NGN },
     fetchPolicy: "cache-and-network",
+    nextFetchPolicy: "network-only",
     pollInterval,
   });
+
+  const [show, setShow] = useState<boolean>(false);
+  const [buyRequest, setBuyRequest] = useState<BuyRequest>({
+    amount: 0,
+    currency: currencies.NGN,
+    price: null,
+  });
+
   if (!data) {
     return null;
   }
+
   const realtimePrice = data?.realtimePrice;
+  const { pricePerSat, pricePerUsd } = getPrice(realtimePrice);
+  const btcPriceInNGN = pricePerSat * SATS_PER_BTC;
 
   const handleBuyRequest = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const CURRENT_PRICE = getPrice({
-      currency: CURRENCIES.NGN,
-      realtimePrice,
-    });
-    setBuyRequest((prevRequest) => ({ ...prevRequest, price: CURRENT_PRICE }));
+    setBuyRequest((prevRequest) => ({ ...prevRequest, price: pricePerUsd }));
     setShow(true);
-    console.table(buyRequest);
   };
 
   const updateBuyRequest = (
@@ -77,14 +79,8 @@ export default function Buy() {
           </select>
         </div>
         <div>
-          <p>{`BTC Price in NGN: ${getPrice({
-            currency: CURRENCIES.NGN,
-            realtimePrice,
-          })}`}</p>
-          <p>{`1 USD TO NGN: ${getPrice({
-            currency: CURRENCIES.USD,
-            realtimePrice,
-          })}`}</p>
+          <p>{`BTC Price in NGN: ${formatter(btcPriceInNGN)}`}</p>
+          <p>{`1 USD TO NGN: ${formatter(pricePerUsd)}`}</p>
         </div>
         <div>
           <button>Submit</button>
