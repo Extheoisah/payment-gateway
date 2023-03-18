@@ -1,8 +1,6 @@
 import Head from "next/head";
-import { Inter } from "next/font/google";
-import Buy from "./buy";
 
-const inter = Inter({ subsets: ["latin"] });
+import Buy from "./buy";
 
 export default function Home() {
   return (

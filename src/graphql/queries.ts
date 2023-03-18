@@ -19,3 +19,11 @@ export const REALTIMEPRICE = gql`
     }
   }
 `;
+
+export const ACCOUNTDEFAULTWALLET = gql`
+  query accountDefaultWallet ($username: Username!) {
+    accountDefaultWallet(username: $username) {
+      id
+    }
+  }
+`
