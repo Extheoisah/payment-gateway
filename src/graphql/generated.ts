@@ -1421,10 +1421,11 @@ export type RealtimepriceQuery = { readonly __typename: 'Query', readonly realti
 
 export type AccountDefaultWalletQueryVariables = Exact<{
   username: Scalars['Username'];
+  walletCurrency: WalletCurrency;
 }>;
 
 
-export type AccountDefaultWalletQuery = { readonly __typename: 'Query', readonly accountDefaultWallet: { readonly __typename: 'PublicWallet', readonly id: string } };
+export type AccountDefaultWalletQuery = { readonly __typename: 'Query', readonly accountDefaultWallet: { readonly __typename: 'PublicWallet', readonly id: string, readonly walletCurrency: WalletCurrency } };
 
 
 export const RealtimepriceDocument = gql`
@@ -1475,9 +1476,10 @@ export type RealtimepriceQueryHookResult = ReturnType<typeof useRealtimepriceQue
 export type RealtimepriceLazyQueryHookResult = ReturnType<typeof useRealtimepriceLazyQuery>;
 export type RealtimepriceQueryResult = Apollo.QueryResult<RealtimepriceQuery, RealtimepriceQueryVariables>;
 export const AccountDefaultWalletDocument = gql`
-    query accountDefaultWallet($username: Username!) {
-  accountDefaultWallet(username: $username) {
+    query accountDefaultWallet($username: Username!, $walletCurrency: WalletCurrency!) {
+  accountDefaultWallet(username: $username, walletCurrency: $walletCurrency) {
     id
+    walletCurrency
   }
 }
     `;
@@ -1495,6 +1497,7 @@ export const AccountDefaultWalletDocument = gql`
  * const { data, loading, error } = useAccountDefaultWalletQuery({
  *   variables: {
  *      username: // value for 'username'
+ *      walletCurrency: // value for 'walletCurrency'
  *   },
  * });
  */

@@ -1,6 +1,8 @@
 import { RealtimePrice } from "@/graphql/generated";
 import { currencies } from "@/types/currencies";
 
+export const SATS_PER_BTC = 100000000;
+
 export const formatter = (amount: number) => {
   const formattedAmount = new Intl.NumberFormat(currencies.NGN, {
     minimumFractionDigits: 2,
