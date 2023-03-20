@@ -21,13 +21,9 @@ export const REALTIMEPRICE = gql`
 `;
 
 export const ACCOUNTDEFAULTWALLET = gql`
-  query accountDefaultWallet(
-    $username: Username!
-    $walletCurrency: WalletCurrency!
-  ) {
-    accountDefaultWallet(username: $username, walletCurrency: $walletCurrency) {
+  query accountDefaultWallet($username: Username!) {
+    accountDefaultWallet(username: $username) {
       id
-      walletCurrency
     }
   }
 `;
