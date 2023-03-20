@@ -12,7 +12,7 @@ const ToolTip = ({ text }: { text: string }) => {
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            className="data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade text-gray-700 select-none rounded-[4px] bg-white px-[15px] py-[10px] text-[sm] leading-none will-change-[transform,opacity]"
+            className="data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade text-gray-700 select-none rounded-[4px] bg-white px-[15px] py-[10px] text-[12px] leading-none will-change-[transform,opacity]"
             sideOffset={5}
           >
             {text}
