@@ -907,22 +907,36 @@ export type PriceInput = {
 
 export type PriceInterface = {
   readonly base: Scalars['SafeInt'];
+  /** @deprecated Deprecated due to type renaming */
   readonly currencyUnit: Scalars['String'];
   readonly offset: Scalars['Int'];
 };
 
 /** Price of 1 sat in base/offset. To calculate, use: `base / 10^offset` */
-export type PriceOfOneSat = PriceInterface & {
-  readonly __typename: 'PriceOfOneSat';
+export type PriceOfOneSatInMinorUnit = PriceInterface & {
+  readonly __typename: 'PriceOfOneSatInMinorUnit';
   readonly base: Scalars['SafeInt'];
+  /** @deprecated Deprecated due to type renaming */
   readonly currencyUnit: Scalars['String'];
   readonly offset: Scalars['Int'];
 };
 
-/** Price of 1 usd cent in base/offset. To calculate, use: `base / 10^offset` */
-export type PriceOfOneUsdCent = PriceInterface & {
-  readonly __typename: 'PriceOfOneUsdCent';
+/** Price of 1 sat or 1 usd cent in base/offset. To calculate, use: `base / 10^offset` */
+export type PriceOfOneSettlementMinorUnitInDisplayMinorUnit = PriceInterface & {
+  readonly __typename: 'PriceOfOneSettlementMinorUnitInDisplayMinorUnit';
   readonly base: Scalars['SafeInt'];
+  /** @deprecated Deprecated due to type renaming */
+  readonly currencyUnit: Scalars['String'];
+  /** @deprecated Deprecated please use `base / 10^offset` */
+  readonly formattedAmount: Scalars['String'];
+  readonly offset: Scalars['Int'];
+};
+
+/** Price of 1 usd cent in base/offset. To calculate, use: `base / 10^offset` */
+export type PriceOfOneUsdCentInMinorUnit = PriceInterface & {
+  readonly __typename: 'PriceOfOneUsdCentInMinorUnit';
+  readonly base: Scalars['SafeInt'];
+  /** @deprecated Deprecated due to type renaming */
   readonly currencyUnit: Scalars['String'];
   readonly offset: Scalars['Int'];
 };
@@ -1049,12 +1063,12 @@ export type QuizQuestion = {
 
 export type RealtimePrice = {
   readonly __typename: 'RealtimePrice';
-  readonly btcSatPrice: PriceOfOneSat;
+  readonly btcSatPrice: PriceOfOneSatInMinorUnit;
   readonly denominatorCurrency: Scalars['DisplayCurrency'];
   readonly id: Scalars['ID'];
   /** Unix timestamp (number of seconds elapsed since January 1, 1970 00:00:00 UTC) */
   readonly timestamp: Scalars['Timestamp'];
-  readonly usdCentPrice: PriceOfOneUsdCent;
+  readonly usdCentPrice: PriceOfOneUsdCentInMinorUnit;
 };
 
 export type RealtimePriceInput = {
@@ -1147,8 +1161,8 @@ export type Transaction = {
   readonly settlementDisplayCurrency: Scalars['DisplayCurrency'];
   readonly settlementDisplayFee: Scalars['SignedDisplayMajorAmount'];
   readonly settlementFee: Scalars['SignedAmount'];
-  /** Price in USDCENT/SETTLEMENTUNIT at time of settlement. */
-  readonly settlementPrice: Price;
+  /** Price in WALLETCURRENCY/SETTLEMENTUNIT at time of settlement. */
+  readonly settlementPrice: PriceOfOneSettlementMinorUnitInDisplayMinorUnit;
   /** To which protocol the payment has settled on. */
   readonly settlementVia: SettlementVia;
   readonly status: TxStatus;
@@ -1403,7 +1417,14 @@ export type RealtimepriceQueryVariables = Exact<{
 }>;
 
 
-export type RealtimepriceQuery = { readonly __typename: 'Query', readonly realtimePrice: { readonly __typename: 'RealtimePrice', readonly id: string, readonly timestamp: number, readonly denominatorCurrency: string, readonly btcSatPrice: { readonly __typename: 'PriceOfOneSat', readonly base: number, readonly offset: number, readonly currencyUnit: string }, readonly usdCentPrice: { readonly __typename: 'PriceOfOneUsdCent', readonly base: number, readonly offset: number, readonly currencyUnit: string } } };
+export type RealtimepriceQuery = { readonly __typename: 'Query', readonly realtimePrice: { readonly __typename: 'RealtimePrice', readonly id: string, readonly timestamp: number, readonly denominatorCurrency: string, readonly btcSatPrice: { readonly __typename: 'PriceOfOneSatInMinorUnit', readonly base: number, readonly offset: number, readonly currencyUnit: string }, readonly usdCentPrice: { readonly __typename: 'PriceOfOneUsdCentInMinorUnit', readonly base: number, readonly offset: number, readonly currencyUnit: string } } };
+
+export type AccountDefaultWalletQueryVariables = Exact<{
+  username: Scalars['Username'];
+}>;
+
+
+export type AccountDefaultWalletQuery = { readonly __typename: 'Query', readonly accountDefaultWallet: { readonly __typename: 'PublicWallet', readonly id: string } };
 
 
 export const RealtimepriceDocument = gql`
@@ -1453,3 +1474,38 @@ export function useRealtimepriceLazyQuery(baseOptions?: Apollo.LazyQueryHookOpti
 export type RealtimepriceQueryHookResult = ReturnType<typeof useRealtimepriceQuery>;
 export type RealtimepriceLazyQueryHookResult = ReturnType<typeof useRealtimepriceLazyQuery>;
 export type RealtimepriceQueryResult = Apollo.QueryResult<RealtimepriceQuery, RealtimepriceQueryVariables>;
+export const AccountDefaultWalletDocument = gql`
+    query accountDefaultWallet($username: Username!) {
+  accountDefaultWallet(username: $username) {
+    id
+  }
+}
+    `;
+
+/**
+ * __useAccountDefaultWalletQuery__
+ *
+ * To run a query within a React component, call `useAccountDefaultWalletQuery` and pass it any options that fit your needs.
+ * When your component renders, `useAccountDefaultWalletQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useAccountDefaultWalletQuery({
+ *   variables: {
+ *      username: // value for 'username'
+ *   },
+ * });
+ */
+export function useAccountDefaultWalletQuery(baseOptions: Apollo.QueryHookOptions<AccountDefaultWalletQuery, AccountDefaultWalletQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<AccountDefaultWalletQuery, AccountDefaultWalletQueryVariables>(AccountDefaultWalletDocument, options);
+      }
+export function useAccountDefaultWalletLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AccountDefaultWalletQuery, AccountDefaultWalletQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<AccountDefaultWalletQuery, AccountDefaultWalletQueryVariables>(AccountDefaultWalletDocument, options);
+        }
+export type AccountDefaultWalletQueryHookResult = ReturnType<typeof useAccountDefaultWalletQuery>;
+export type AccountDefaultWalletLazyQueryHookResult = ReturnType<typeof useAccountDefaultWalletLazyQuery>;
+export type AccountDefaultWalletQueryResult = Apollo.QueryResult<AccountDefaultWalletQuery, AccountDefaultWalletQueryVariables>;
