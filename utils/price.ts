@@ -24,3 +24,8 @@ export const getPrice = (realtimePrice: RealtimePrice) => {
     pricePerUsd,
   };
 };
+
+export const isLowerThan1000 = (amount: number | undefined) => {
+  if (!amount) return false;
+  return !isNaN(amount) && amount < 1000;
+};

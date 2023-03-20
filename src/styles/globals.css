@@ -71,7 +71,7 @@ a {
 }
 
 .animate-spinner {
-  animation: spinner 1s linear infinite;
+  animation: spinner 0.75s linear infinite;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -1,6 +1,8 @@
+import axios from "axios";
 import Head from "next/head";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
+import CheckoutDialog from "@/components/checkout-dialog";
 import Price from "@/components/price";
 import ToolTip from "@/components/tool-tip";
 import {
@@ -10,20 +12,15 @@ import {
 } from "@/graphql/generated";
 import { useDebounce } from "@/hooks/usedebounce";
 import { currencies } from "@/types/currencies";
-import * as Dialog from "@radix-ui/react-dialog";
+import { ResponseError } from "@/types/error";
+import { BuyRequest } from "@/types/payment";
 import * as Form from "@radix-ui/react-form";
-import { CheckCircledIcon, Cross2Icon } from "@radix-ui/react-icons";
+import { CheckCircledIcon } from "@radix-ui/react-icons";
 import * as RadioGroup from "@radix-ui/react-radio-group";
 
-import { formatter, getPrice } from "../../utils/price";
-
-type BuyRequest = {
-  amount: number | undefined;
-  currency: WalletCurrency;
-  price: number | undefined;
-  walletId: string | undefined;
-  username: string;
-};
+import { getPrice, isLowerThan1000 } from "../../utils/price";
+import LoadingSpinner from "@/components/loading-spinner";
+import DialogBox from "@/components/dailog";
 
 const initialBuyRequest: BuyRequest = {
   amount: undefined,
@@ -31,32 +28,45 @@ const initialBuyRequest: BuyRequest = {
   price: undefined,
   walletId: undefined,
   username: "",
+  email: "",
 };
 
-const isLowerThan1000 = (amount: number | undefined) => {
-  if (!amount) return false;
-  return !isNaN(amount) && amount < 1000;
-};
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmail(email: string) {
+  return EMAIL_REGEX.test(email);
+}
 
 export default function Home() {
   const [validUsername, setValidUsername] = useState<boolean>(false);
+  const [validEmail, setValidEmail] = useState<boolean>(false);
   const [buyRequest, setBuyRequest] = useState<BuyRequest>(initialBuyRequest);
+  const [isLoadingCheckoutData, setIsLoadingCheckoutData] =
+    useState<boolean>(false);
+  const [requestError, setRequestError] = useState<ResponseError | Error>();
+
   const debouncedUsername = useDebounce({
     value: buyRequest.username,
-    delay: 500,
+    delay: 1000, // 1 second
+  });
+
+  const debouncedEmail = useDebounce({
+    value: buyRequest.email,
+    delay: 1000, // 1 second
   });
 
   const pollInterval = 3 * 60 * 1000; // 3 min
   const { data } = useRealtimepriceQuery({
     variables: { currency: currencies.NGN },
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "network-only",
+    nextFetchPolicy: "cache-and-network",
     pollInterval,
   });
 
   const {
     data: accountDefaultWallet,
     loading,
-    error,
+    error: accountDefaultWalletError,
   } = useAccountDefaultWalletQuery({
     variables: {
       username: debouncedUsername,
@@ -65,34 +75,73 @@ export default function Home() {
   });
 
   useEffect(() => {
+    if (debouncedEmail) {
+      setValidEmail(validateEmail(debouncedEmail));
+    }
+  }, [debouncedEmail]);
+
+  useEffect(() => {
     if (accountDefaultWallet) {
       setBuyRequest((prevRequest) => ({
         ...prevRequest,
         walletId: accountDefaultWallet.accountDefaultWallet.id,
       }));
-      return setValidUsername(true);
+      setValidUsername(true);
     }
-    setValidUsername(false);
   }, [debouncedUsername, accountDefaultWallet]);
 
   if (!data) {
     return null;
   }
 
+  if (requestError) {
+    return (
+      <DialogBox title="Error">
+        <div className="flex flex-col gap-y-2">
+          <div className="text-red-500">{requestError?.message}</div>
+        </div>
+      </DialogBox>
+    );
+  }
+
+  if (isLoadingCheckoutData) {
+    return (
+      <div className="flex flex-col justify-center items-center gap-y-4 m-[0 auto] h-[100vh]">
+        <LoadingSpinner size="large" />
+        <div>Preparing checkout data...</div>
+      </div>
+    );
+  }
+
   const realtimePrice = data?.realtimePrice;
   const { pricePerSat, pricePerUsd } = getPrice(realtimePrice);
 
-  const handleBuyRequest = (
+  const handleBuyRequest = async (
     e: FormEvent<HTMLFormElement | HTMLButtonElement>
   ) => {
     e.preventDefault();
-    setBuyRequest((prevRequest) => ({ ...prevRequest, price: pricePerUsd }));
-    console.table(buyRequest);
+    if (isLoadingCheckoutData) return;
+    setIsLoadingCheckoutData(true);
+    try {
+      const response = await axios.post("/api/payment", {
+        body: JSON.stringify(buyRequest),
+      });
+      console.log(buyRequest);
+      if (response?.status === 200) {
+        setIsLoadingCheckoutData(false);
+        const paymentLink: string = response?.data?.data.link;
+        window.location.href = paymentLink;
+      }
+    } catch (error) {
+      setRequestError(error as ResponseError);
+    } finally {
+      setIsLoadingCheckoutData(false);
+    }
   };
 
   const updateBuyRequest = (
     e: ChangeEvent<HTMLInputElement>,
-    field: string
+    field: keyof BuyRequest
   ) => {
     setBuyRequest((prevRequest) => ({
       ...prevRequest,
@@ -123,7 +172,7 @@ export default function Home() {
               </Form.Message>
               <Form.Message
                 className="text-xs text-red-500"
-                match={() => (error ? true : false)}
+                match={() => (accountDefaultWalletError ? true : false)}
               >
                 username does not exist
               </Form.Message>
@@ -143,14 +192,53 @@ export default function Home() {
                 </Form.Control>
                 <div className="absolute -right-6">
                   {loading ? (
-                    <div className="w-4 h-4 border border-t-2 border-green-300 border-solid rounded-full animate-spinner"></div>
+                    <LoadingSpinner size="small" />
                   ) : (
                     <CheckCircledIcon
                       className={`${
                         validUsername ? "text-green-500" : "text-red-500"
-                      }`}
+                      } ${buyRequest.username ? "block" : "hidden"}`}
                     />
                   )}
+                </div>
+              </div>
+            </div>
+          </Form.Field>
+
+          <Form.Field className="mt-6" name="email">
+            <div className="flex flex-col gap-y-1 relative">
+              <Form.Label>E-mail</Form.Label>
+              <Form.Message
+                className="text-xs text-red-500"
+                match="valueMissing"
+              >
+                email is required
+              </Form.Message>
+              <Form.Message
+                className="text-xs text-red-500"
+                match={() => validEmail ? true : false}
+              >
+                please provide a valid email address
+              </Form.Message>
+              <div className="flex justify-center items-center gap-x-4">
+                <Form.Control asChild>
+                  <input
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      updateBuyRequest(e, "email")
+                    }
+                    className="w-[300px] h-[40px] rounded-[4px] border-[1px] border-gray-500 outline-none px-4"
+                    type="text"
+                    placeholder="Email address"
+                    spellCheck="false"
+                    required
+                  />
+                </Form.Control>
+                <div className="absolute -right-6">
+                  <CheckCircledIcon
+                    className={`${
+                      validEmail ? "text-green-500" : "text-red-500"
+                    } ${buyRequest.email ? "block" : "hidden"}`}
+                  />
                 </div>
               </div>
             </div>
@@ -240,7 +328,10 @@ export default function Home() {
           </RadioGroup.Root>
 
           <CheckoutDialog
+            pricePerUsd={pricePerUsd}
+            pricePerSat={pricePerSat}
             buyRequest={buyRequest}
+            setBuyRequest={setBuyRequest}
             handleBuyRequest={handleBuyRequest}
           />
         </Form.Root>
@@ -249,85 +340,3 @@ export default function Home() {
     </>
   );
 }
-
-const CheckoutDialog = ({
-  buyRequest,
-  handleBuyRequest,
-}: {
-  buyRequest: BuyRequest;
-  handleBuyRequest: (e: FormEvent<HTMLButtonElement>) => void;
-}) => {
-  const [open, setOpen] = useState(false);
-  const disabled =
-    !buyRequest.username ||
-    !buyRequest.amount ||
-    isLowerThan1000(buyRequest.amount);
-
-  return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
-        <Form.Submit disabled={disabled} asChild>
-          <button className="box-border w-full text-gray-100 shadow-black hover:bg-mauve3 inline-flex h-[35px] items-center justify-center rounded-[4px] bg-blue-800 px-[15px] font-medium leading-none shadow-[0_2px_5px] focus:shadow-[0_0_0_2px] focus:shadow-blue-600 focus:outline-none mt-[10px] disabled:opacity-50">
-            Buy
-          </button>
-        </Form.Submit>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="bg-gray-100 opacity-30 data-[state=open]:animate-overlayShow fixed inset-0" />
-        <Dialog.Content className="flex flex-col justify-center items-center data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] bg-gray-100 p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none">
-          <Dialog.Title className="text-gray-900 m-0 text-[17px] font-medium">
-            Confirm your purchase
-          </Dialog.Title>
-          <Dialog.Description className="text-gray-900 mt-[10px] mb-5 text-[15px] leading-normal text-center">
-            Please confirm the details of the transaction before proceeding.
-          </Dialog.Description>
-          <fieldset className="mb-[15px] flex items-center">
-            <span className="text-gray-900 w-full text-right text-[15px]">
-              Username:{" "}
-              <span className="font-bold text-gray-600">
-                {buyRequest.username}
-              </span>
-            </span>
-          </fieldset>
-          <fieldset className="mb-[15px] flex items-center">
-            <p className="text-gray-900 w-full text-right text-[15px]">
-              Amount:{" "}
-              <span className="font-bold text-gray-600">
-                {buyRequest.amount && formatter(buyRequest.amount)}
-              </span>
-            </p>
-          </fieldset>
-          <fieldset className="mb-[15px] flex items-center">
-            <p className="text-gray-900 w-full text-right text-[15px]">
-              Wallet to top up:{" "}
-              <span className="font-bold text-gray-600">
-                {buyRequest.currency}
-              </span>
-            </p>
-          </fieldset>
-          <div className="mt-[25px] flex justify-end">
-            <Dialog.Close asChild>
-              <button
-                onClick={(e) => {
-                  setOpen(false), handleBuyRequest(e);
-                }}
-                disabled={disabled}
-                className="bg-green-400 text-gray-700 hover:bg-green-400 focus:shadow-green-700 inline-flex h-[35px] items-center justify-center rounded-[4px] px-[15px] font-medium leading-none focus:shadow-[0_0_0_2px] focus:outline-none disabled:opacity-50"
-              >
-                Confirm
-              </button>
-            </Dialog.Close>
-          </div>
-          <Dialog.Close asChild>
-            <button
-              className="text-red-500 hover:bg-white border-red-500 hover:border focus:shadow-red-500 absolute top-[10px] right-[10px] inline-flex h-[25px] w-[25px] appearance-none items-center justify-center rounded-full focus:shadow-[0_0_0_2px] focus:outline-none disabled:cursor-not-allowed"
-              aria-label="Close"
-            >
-              <Cross2Icon />
-            </button>
-          </Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-};
