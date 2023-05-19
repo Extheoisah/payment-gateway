@@ -216,7 +216,7 @@ export default function Home() {
               </Form.Message>
               <Form.Message
                 className="text-xs text-red-500"
-                match={() => validEmail ? true : false}
+                match={() => (validEmail ? true : false)}
               >
                 please provide a valid email address
               </Form.Message>
@@ -328,6 +328,7 @@ export default function Home() {
           </RadioGroup.Root>
 
           <CheckoutDialog
+            validUsername={validUsername}
             pricePerUsd={pricePerUsd}
             pricePerSat={pricePerSat}
             buyRequest={buyRequest}

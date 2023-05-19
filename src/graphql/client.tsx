@@ -1,11 +1,16 @@
+import baseEndPoints from "@/config/config";
 import { ApolloClient, InMemoryCache } from "@apollo/client";
 import { useMemo } from "react";
 
 let apolloClient: ApolloClient<unknown> | undefined;
 
 function createApolloClient() {
+  const isProduction = process.env.NODE_ENV === "production";
+  const uri = isProduction
+    ? baseEndPoints.GALOY_MAINNET_API
+    : baseEndPoints.GALOY_STAGING_API;
   return new ApolloClient({
-    uri: "https://api.staging.galoy.io/graphql",
+    uri,
     cache: new InMemoryCache(),
   });
 }
