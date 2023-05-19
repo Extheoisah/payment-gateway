@@ -7,12 +7,14 @@ import { Cross2Icon } from "@radix-ui/react-icons";
 import { formatter, isLowerThan1000, SATS_PER_BTC } from "../../utils/price";
 
 const CheckoutDialog = ({
+  validUsername,
   pricePerUsd,
   pricePerSat,
   buyRequest,
   setBuyRequest,
   handleBuyRequest,
 }: {
+  validUsername: boolean;
   pricePerUsd: number;
   pricePerSat: number;
   buyRequest: BuyRequest;
@@ -22,6 +24,7 @@ const CheckoutDialog = ({
   const btcPriceInNGN = pricePerSat * SATS_PER_BTC;
   const [open, setOpen] = useState(false);
   const disabled =
+    !validUsername ||
     !buyRequest.username ||
     !buyRequest.amount ||
     isLowerThan1000(buyRequest.amount);
@@ -30,6 +33,7 @@ const CheckoutDialog = ({
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
         <button
+          hidden={validUsername}
           onClick={() =>
             setBuyRequest((prevRequest) => ({
               ...prevRequest,
@@ -65,7 +69,9 @@ const CheckoutDialog = ({
               <span className="font-bold text-gray-600">
                 {buyRequest.amount && formatter(buyRequest.amount)}
               </span>
-              <p className="text-xs font-semibold text-gray-400 pt-1">@ {formatter(btcPriceInNGN)}</p>
+              <p className="text-xs font-semibold text-gray-400 pt-1">
+                @ {formatter(btcPriceInNGN)}
+              </p>
             </p>
           </fieldset>
           <fieldset className="mb-[15px] flex items-center">

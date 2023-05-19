@@ -83,11 +83,11 @@ async function getCheckoutUrl(buyRequest: BuyRequest): Promise<ResponseData> {
     tx_ref: generateTransactionReference(),
     amount: buyRequest.amount,
     currency: currencies.NGN,
-    redirect_url: "https://webhook.site/c548c893-2892-4149-8cc9-c1264b4f83dc",
+    redirect_url: "https://webhook.site/53a05d90-2c7e-4987-9b7b-c970d57432be",
     meta: {
       customer_username: buyRequest.username,
       customer_wallet_id: buyRequest.walletId,
-      customer_specified_wallet_currency: buyRequest.currency,
+      buy_request_price: buyRequest.price,
     },
     customer: {
       email: buyRequest.email,
